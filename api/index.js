@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken')
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const bcryptjs = require('bcryptjs')
+const ws = require('ws')
 
 
 //It is not good to have passwords in the code.
@@ -15,6 +16,7 @@ mongoose.connect(process.env.MONGO_URL);
 
 const bcryptSalt = bcryptjs.genSaltSync(10);
 const app = express();
+const jwtSecret = process.env.JWT_SECRET;
 
 app.use(express.json());
 app.use(cookieParser());
@@ -30,7 +32,7 @@ app.get("/test", (req, res) => {
 app.get('/profile', (req, res)=>{
     const token = req.cookies?.token;
     if(token){
-        jwt.verify(token, process.env.JWT_SECRET, {}, (err, userData)=>{
+        jwt.verify(token, jwtSecret, {}, (err, userData)=>{
             if(err) throw err;
             res.json(userData)
         })
@@ -63,7 +65,7 @@ app.post("/register",async (req, res) => {
             username, password: hashedPwd
         });
         //we are signing in the user as soon as he is registered
-        jwt.sign({userId:createdUser._id, username}, process.env.JWT_SECRET, {}, (err, token) => {
+        jwt.sign({userId:createdUser._id, username}, jwtSecret, {}, (err, token) => {
             if(err) throw err;
             res.cookie('token',token, {sameSite:'none', secure:true}).status(201).json({
                 id: createdUser._id,
@@ -76,4 +78,29 @@ app.post("/register",async (req, res) => {
     
 })
 
-app.listen(4000);
+const server = app.listen(4000);
+
+//creating new web scoket server
+const wss = new ws.WebSocketServer({server});
+wss.on('connection', (connection, req) => {
+    //req.headers will have all the headers including cookies
+    //cookies has token which as user information
+    //there can be multiple cookie but we need only the token.
+    //is there are multiple cookies, they will be separated by ";"
+    const cookies = req.headers.cookie;
+    if(cookies){
+        const tokenCookieString = cookies.split(";").find(str => str.startsWith('token='));
+        if(tokenCookieString){
+            const token = tokenCookieString.split("=")[1];
+            if(token){
+                jwt.verify(token, jwtSecret, (error, userData)=>{
+                    if(error) throw error;
+                    const {userId, username} = userData;
+                    connection.userId = userId;
+                    connection.username = username;
+                })
+            }
+        }
+    }
+    connection.send('hello')
+})
