@@ -82,6 +82,8 @@ const server = app.listen(4000);
 
 //creating new web scoket server
 const wss = new ws.WebSocketServer({server});
+
+//all connections sit inside web socket.clients
 wss.on('connection', (connection, req) => {
     //req.headers will have all the headers including cookies
     //cookies has token which as user information
@@ -102,5 +104,12 @@ wss.on('connection', (connection, req) => {
             }
         }
     }
-    connection.send('hello')
-})
+
+    [...wss.clients].forEach(client => {
+        client.send(JSON.stringify(
+            {
+                online : [...wss.clients].map(c => ({userId:c.userId,username:c.username}))
+            }
+        ))
+    })
+});
