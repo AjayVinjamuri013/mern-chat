@@ -51,7 +51,7 @@ app.get('/messages/:userId', async (req, res) => {
     const messages = await MessageModel.find({
         sender: {$in:[userId, ourUserId]},
         recipient: {$in:[userId, ourUserId]},
-    }).sort({createdAt: -1});
+    }).sort({createdAt: 1});
     res.json(messages);
 })
 
@@ -145,7 +145,7 @@ wss.on('connection', (connection, req) => {
                 //the user can be connected through multiple devices
                 .filter(c => c.userId === recipient)
                 .forEach(c => c.send(JSON.stringify({
-                    id: msgDoc._id,
+                    _id: msgDoc._id,
                     text, 
                     recipient,
                     sender:connection.userId

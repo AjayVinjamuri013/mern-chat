@@ -62,7 +62,7 @@ export default function Chat(){
       text:newMsgText, 
       sender: id, 
       recipient: selectedUserId,
-      id:Date.now(),
+      _id:Date.now(),
     }]));
   }
 
@@ -76,13 +76,15 @@ export default function Chat(){
 
   useEffect(() => {
     if(selectedUserId)
-      axios.get('/messages/'+selectedUserId)
+      axios.get('/messages/'+selectedUserId).then(res => {
+      setMessages(res.data);
+    })
   }, [selectedUserId]);
 
   const onlinePeopleExOurName = {...onlinePeople};
   delete onlinePeopleExOurName[id];
 
-  const msgsWithoutDupes = uniqBy(messages, 'id'); 
+  const msgsWithoutDupes = uniqBy(messages, '_id'); 
 
     return(
         <div className="flex h-screen">
@@ -117,9 +119,7 @@ export default function Chat(){
                        // eslint-disable-next-line react/jsx-key
                        <div className={(message.sender === id ? 'text-right':'text-left')}>
                          <div className={"text-left inline-block p-2 my-2 rounded-md text-sm "+(message.sender === id ? 'bg-blue-500 text-white':'bg-white text-grey-500')}>
-                          Sender : {message.sender} <br />
-                          my id:{id} <br />
-                          {message.text} <br />
+                          {message.text}
                           </div>
                         </div>
                       ))}
