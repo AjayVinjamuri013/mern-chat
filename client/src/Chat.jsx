@@ -11,7 +11,8 @@ export default function Chat(){
   const [newMsgText, setNewMsgText] =  useState('');
   const [messages, setMessages] = useState([]);
   const {username, id} = useContext(UserContext);
-  const messagesBoxRef = useRef();
+  //this is for autoscrolling when a messages is sent 
+  const divUnderMessages = useRef();
 
   useEffect(()=>{
     const ws = new WebSocket('ws://localhost:4000');
@@ -54,6 +55,14 @@ export default function Chat(){
     }]));
   }
 
+  //useeffect code will run whenever messages get updated.
+  useEffect(() => {
+    const div = divUnderMessages.current;
+    if(div) {
+      div.scrollIntoView({behavior:'smooth', block:'end'});
+    }
+  }, [messages]);
+
   const onlinePeopleExOurName = {...onlinePeople};
   delete onlinePeopleExOurName[id];
 
@@ -87,17 +96,18 @@ export default function Chat(){
                   //the below 2 divs are for 
                   //when a chat is being scrolled, the contacts to the left shouldn't scroll
                   <div className="relative h-full">
-                    <div className="overflow-y-scroll absolute inset-0">
+                    <div className="overflow-y-scroll absolute top-0 left-0 right-0 bottom-2">
                     {msgsWithoutDupes.map(message => (
                        // eslint-disable-next-line react/jsx-key
                        <div className={(message.sender === id ? 'text-right':'text-left')}>
                          <div className={"text-left inline-block p-2 my-2 rounded-md text-sm "+(message.sender === id ? 'bg-blue-500 text-white':'bg-white text-grey-500')}>
                           Sender : {message.sender} <br />
-                         my id:{id} <br />
+                          my id:{id} <br />
                           {message.text} <br />
                           </div>
                         </div>
                       ))}
+                      <div ref={divUnderMessages}></div>
                     </div>
                   </div>
                 )}
