@@ -5,7 +5,8 @@ const jwt = require('jsonwebtoken')
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const bcryptjs = require('bcryptjs')
-const ws = require('ws')
+const ws = require('ws');
+const MessageModel = require('./Models/Message');
 
 
 //It is not good to have passwords in the code.
@@ -105,6 +106,29 @@ wss.on('connection', (connection, req) => {
         }
     }
 
+    connection.on('message', async (msg) => {
+        const msgData = JSON.parse(msg.toString());
+        const {recipient, text} = msgData;
+        if(recipient && text){
+            const msgDoc = await MessageModel.create({
+                sender: connection.userId,
+                recipient,
+                text,
+            });
+            [...wss.clients]
+                //we are not using find here because find will only return one instance
+                //the user can be connected through multiple devices
+                .filter(c => c.userId === recipient)
+                .forEach(c => c.send(JSON.stringify({
+                    id: msgDoc._id,
+                    text, 
+                    recipient,
+                    sender:connection.userId
+                })));
+        }
+    });
+
+    //notifying everyone who is online about new connection.
     [...wss.clients].forEach(client => {
         client.send(JSON.stringify(
             {
