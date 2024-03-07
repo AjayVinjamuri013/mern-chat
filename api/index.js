@@ -55,6 +55,10 @@ app.get('/messages/:userId', async (req, res) => {
     res.json(messages);
 })
 
+app.get('/people', async (req, res) => {
+    res.json(await User.find({},{'_id':1,username:1}));
+})
+
 app.get('/profile', (req, res)=>{
     const token = req.cookies?.token;
     if(token){
@@ -111,6 +115,32 @@ const wss = new ws.WebSocketServer({server});
 
 //all connections sit inside web socket.clients
 wss.on('connection', (connection, req) => {
+
+    function notifyAboutOnlinePeople(){
+        //notifying everyone who is online about new connection.
+        [...wss.clients].forEach(client => {
+            client.send(JSON.stringify(
+                {
+                    online : [...wss.clients].map(c => ({userId:c.userId,username:c.username}))
+                }
+            ))
+        });
+    }
+
+    connection.isAlive = true;
+
+    connection.timer = setInterval(() => {
+        connection.ping();
+        connection.deathTimer = setTimeout(() => {
+            connection.isAlive = false;
+            connection.terminate()
+            notifyAboutOnlinePeople();
+        }, 1000);
+    }, 5000);
+
+    connection.on('pong', () => {
+        clearTimeout(connection.deathTimer);
+    })
     //req.headers will have all the headers including cookies
     //cookies has token which as user information
     //there can be multiple cookie but we need only the token.
@@ -153,12 +183,5 @@ wss.on('connection', (connection, req) => {
         }
     });
 
-    //notifying everyone who is online about new connection.
-    [...wss.clients].forEach(client => {
-        client.send(JSON.stringify(
-            {
-                online : [...wss.clients].map(c => ({userId:c.userId,username:c.username}))
-            }
-        ))
-    })
+    notifyAboutOnlinePeople();
 });
