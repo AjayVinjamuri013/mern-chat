@@ -13,7 +13,7 @@ export default function Chat(){
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [newMsgText, setNewMsgText] =  useState('');
   const [messages, setMessages] = useState([]);
-  const {username, id} = useContext(UserContext);
+  const {username, id, setId, setUsername} = useContext(UserContext);
   //this is for autoscrolling when a messages is sent 
   const divUnderMessages = useRef();
 
@@ -68,6 +68,14 @@ export default function Chat(){
     }]));
   }
 
+  function logout(){
+    axios.post('/logout').then(() => {
+      setWs(null);
+      setId(null);
+      setUsername(null);
+    })
+  }
+
   //useeffect code will run whenever messages get updated.
   useEffect(() => {
     const div = divUnderMessages.current;
@@ -105,26 +113,36 @@ export default function Chat(){
 
     return(
         <div className="flex h-screen">
-          <div className="bg-white w-1/3">
-            <Logo/>
-            {Object.keys(onlinePeopleExOurName).map(userId => (
-              // eslint-disable-next-line react/jsx-key
-              <Contact 
-                id={userId} 
-                isOnline = {true}
-                username={onlinePeopleExOurName[userId]} 
-                onClick={() => setSelectedUserId(userId)}
-                selected={userId === selectedUserId} />
-            ))}
-            {Object.keys(offlinePeople).map(userId => (
-              // eslint-disable-next-line react/jsx-key
-              <Contact 
-                id={userId} 
-                isOnline = {false}
-                username={offlinePeople[userId].username} 
-                onClick={() => setSelectedUserId(userId)}
-                selected={userId === selectedUserId} />
-            ))}
+          <div className="bg-white w-1/3 flex flex-col">
+            <div className="flex-grow">
+              <Logo/>
+              {Object.keys(onlinePeopleExOurName).map(userId => (
+                // eslint-disable-next-line react/jsx-key
+                <Contact 
+                  id={userId} 
+                  isOnline = {true}
+                  username={onlinePeopleExOurName[userId]} 
+                  onClick={() => setSelectedUserId(userId)}
+                  selected={userId === selectedUserId} />
+              ))}
+              {Object.keys(offlinePeople).map(userId => (
+                // eslint-disable-next-line react/jsx-key
+                <Contact 
+                  id={userId} 
+                  isOnline = {false}
+                  username={offlinePeople[userId].username} 
+                  onClick={() => setSelectedUserId(userId)}
+                  selected={userId === selectedUserId} />
+              ))}
+            </div>
+            <div className="p-2 text-center">
+              <span className="mr-2 text-sm text-gray-600">Logged in as {username}</span>
+              <button 
+                onClick = {logout}
+                className="text-sm bg-blue-200 border rounded-md py-1 px-2 text-gray-800">
+                  Logout
+              </button>
+            </div>
           </div>
             <div className="flex flex-col bg-blue-200 w-2/3 p-2">
               <div className="flex-grow">
